@@ -1,0 +1,4 @@
+#!/usr/bin/env python3
+
+import GITRUR.libgitrur as libgitrur
+libgitrur.main()
