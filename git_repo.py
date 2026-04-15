@@ -15,6 +15,8 @@ class GitRepository (object) :
 #firstly we have to make sure that the git folder actually exist when the force is false 
         if not (force or os.path.isdir(self.gitdir)):
             raise Exception(f"Not a Git Repository {path}")
+        
+        
         self.conf = configparser.ConfigParser()
 
 #now after this check we gotta handle the config file in there        

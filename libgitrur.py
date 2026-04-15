@@ -12,17 +12,65 @@ import os #this is for the interaction with the hardware via os (eg for creating
 import re #will be used for regular expressions
 import sys #for actually getting the command line arguements 
 import zlib #for the compression of the logs
-
+import git_repo
+import utility
 
 #now since this is done now we have to handle the arguements from the command line for this we have to initialize the arguement parser
 def setup_parser():
     argparser = argparse.ArgumentParser(description="GitRuR A Version Control system")
     argsubparser = argparser.add_subparsers(title = "Commands",dest="command")
     argsubparser.required = True
-    argsubparser.add_parser("init",help="To initialize the repository",description="This command is used to initialize the repository")
+    init_parser = argsubparser.add_parser("init",help="To initialize the repository",description="This command is used to initialize the repository")
+    init_parser.add_argument("path",help="Specify the folder path",nargs="?",default=".")
     commit_parser = argsubparser.add_parser("commit",help="to commit the changes",description="To commit the changes")
     commit_parser.add_argument("-m",help="Commit message",required=True)
     return argparser
+
+
+#for default config file this is how it is gonna look like 
+def repo_default_config():
+    ret = configparser.ConfigParser()
+
+    ret.add_section("core")
+    ret.set("core","repositoryformatversion","0")
+    ret.set("core","filemode","false")
+    ret.set("core","bare","false")
+
+    return ret
+
+
+#this is for creating a new Repo
+def create_repo(path):
+    #first we will get the repo object 
+    repo = git_repo.GitRepository(path,True)
+
+    #now we will check whether the worktree is a valid directory and if it exists or not 
+    #here if thedirectory is already existing then what we gotta do is we gotta check if the corresponding git dire is also there and if there is then we have to make sure that it is empty cuz we dont want to overwrite  the existing gitdir
+    if os.path.exists(repo.worktree):
+        if not os.path.isdir(repo.worktree):
+            raise Exception(f"{path}is not a directory!")
+        if os.path.exists(repo.gitdir) and os.listdir(repo.gitdir):
+            raise Exception(f"{path} is not empty") #here it means that the git repo alrready exists so why we are overwriting it with out own repo
+    else:
+        os.makedirs(repo.worktree)
+    
+    assert utility.repo_dir(repo,"branches",mkdir=True)
+    assert utility.repo_dir(repo,"objects",mkdir=True)
+    assert utility.repo_dir(repo,"refs","tags",mkdir=True)
+    assert utility.repo_dir(repo,"refs","heads",mkdir=True)
+
+    #open and write a description 
+    with open(utility.repo_file(repo,"description"),"w") as f:
+        f.write("Unnamed repository; if u want to name this repo u can edit this file. \n")
+    
+    #open the Head and write something in there 
+    with open(utility.repo_file(repo,"HEAD"),"w") as f:
+        f.write("ref: refs/heads/master\n")
+    
+    with open(utility.repo_file(repo,"config"),"w") as f:
+        config = repo_default_config()
+        config.write(f)
+
 
 
 # Bridge Functions 
@@ -45,7 +93,7 @@ def cmd_hash_object(arg):
     print("Logic for: git hash-object")
 
 def cmd_init(arg):
-    print("Logic for: git init")
+    create_repo(arg.path)
 
 def cmd_log(arg):
     print("Logic for: git log")
@@ -71,13 +119,14 @@ def cmd_status(arg):
 def cmd_tag(arg):
     print("Logic for: git tag")
 
-# --- Main Execution ---
+
+
 
 def main(argv=sys.argv[1:]):
 
     parser = setup_parser() # Assuming setup_parser is defined elsewhere
     arg = parser.parse_args(argv)
-    
+
     if not arg.command:
         parser.print_help()
         return
