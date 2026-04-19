@@ -14,6 +14,7 @@ import sys #for actually getting the command line arguements
 import zlib #for the compression of the logs
 import git_repo
 import utility
+import objects
 
 #now since this is done now we have to handle the arguements from the command line for this we have to initialize the arguement parser
 def setup_parser():
@@ -24,61 +25,28 @@ def setup_parser():
     init_parser.add_argument("path",help="Specify the folder path",nargs="?",default=".")
     commit_parser = argsubparser.add_parser("commit",help="to commit the changes",description="To commit the changes")
     commit_parser.add_argument("-m",help="Commit message",required=True)
+    cat_file_parser = argsubparser.add_parser("cat-file",help="Provide content of the repository object")
+    #positional arguements 
+    cat_file_parser.add_argument("type",metavar="type",choices=["blob","commit","tag","tree"],help="Specify the type")
+    cat_file_parser.add_argument("object",metavar="object",help="The object to display")
+    hash_object_parser = argsubparser.add_parser("hash-object",help="Computer object ID and optionally creates a blob from a file")
+    hash_object_parser.add_argument("-t",metavar="type",dest = "type" , choices=["blob","commit","tree","tag"],default = "blob",help="Specify the type")
+    hash_object_parser.add_argument("-w",dest = "write",action="store_true",help="Actually write the object into the database")
+    hash_object_parser.add_argument("path",help="Read object from the <file>")
     return argparser
 
 
-#for default config file this is how it is gonna look like 
-def repo_default_config():
-    ret = configparser.ConfigParser()
-
-    ret.add_section("core")
-    ret.set("core","repositoryformatversion","0")
-    ret.set("core","filemode","false")
-    ret.set("core","bare","false")
-
-    return ret
-
-
-#this is for creating a new Repo
-def create_repo(path):
-    #first we will get the repo object 
-    repo = git_repo.GitRepository(path,True)
-
-    #now we will check whether the worktree is a valid directory and if it exists or not 
-    #here if thedirectory is already existing then what we gotta do is we gotta check if the corresponding git dire is also there and if there is then we have to make sure that it is empty cuz we dont want to overwrite  the existing gitdir
-    if os.path.exists(repo.worktree):
-        if not os.path.isdir(repo.worktree):
-            raise Exception(f"{path}is not a directory!")
-        if os.path.exists(repo.gitdir) and os.listdir(repo.gitdir):
-            raise Exception(f"{path} is not empty") #here it means that the git repo alrready exists so why we are overwriting it with out own repo
-    else:
-        os.makedirs(repo.worktree)
-    
-    assert utility.repo_dir(repo,"branches",mkdir=True)
-    assert utility.repo_dir(repo,"objects",mkdir=True)
-    assert utility.repo_dir(repo,"refs","tags",mkdir=True)
-    assert utility.repo_dir(repo,"refs","heads",mkdir=True)
-
-    #open and write a description 
-    with open(utility.repo_file(repo,"description"),"w") as f:
-        f.write("Unnamed repository; if u want to name this repo u can edit this file. \n")
-    
-    #open the Head and write something in there 
-    with open(utility.repo_file(repo,"HEAD"),"w") as f:
-        f.write("ref: refs/heads/master\n")
-    
-    with open(utility.repo_file(repo,"config"),"w") as f:
-        config = repo_default_config()
-        config.write(f)
-
-
-
-# Bridge Functions 
+#these are the main functions 
 def cmd_add(arg):
     print("Logic for: git add")
 
+def cat_file(repo,obj,fmt = None):
+    obj = objects.object_read(repo,objects.object_find(repo,obj,fmt = fmt))
+    sys.stdout.buffer.write(obj.serialize())
+
 def cmd_cat_file(arg):
-    print("Logic for: git cat-file")
+    repo = utility.repo_find()
+    cat_file(repo,arg.object,arg.type.encode())
 
 def cmd_check_ignore(arg):
     print("Logic for: git check-ignore")
@@ -89,11 +57,34 @@ def cmd_checkout(arg):
 def cmd_commit(arg):
     print(f"Logic for: git commit with message: {arg.message if hasattr(arg, 'message') else 'No message'}")
 
+
+
+def object_hash(fd,fmt,repo=None):
+    data = fd.read()
+
+    match fmt:
+        case b"commit" : object = objects.GitCommit(data)
+        case b"tree"   : object = objects.GitTree(data)
+        case b"blob"   : object = objects.GitBlob(data)
+        case b"tag"    : object = objects.GitTag(data)
+        case _ : raise Exception(f"Unknown Format Specified {fmt}")
+    
+    sha = objects.object_write(object,repo)
+    return sha
+
+
+
 def cmd_hash_object(arg):
-    print("Logic for: git hash-object")
+    if arg.write:
+        repo = utility.repo_find()
+    else:
+        repo = None
+    with open(arg.path,"rb") as fd:
+       sha =  object_hash(fd,arg.type.encode(),repo)
+       print(sha)
 
 def cmd_init(arg):
-    create_repo(arg.path)
+    utility.create_repo(arg.path)
 
 def cmd_log(arg):
     print("Logic for: git log")
