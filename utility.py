@@ -127,6 +127,44 @@ def repo_find(path = ".",required = True):
     return repo_find(parent , required)
 
 
+#here i will be making a commit parser whose job is to parse the keyvaluelist with message type files and parse them into the objects
+
+def kvlm_parser(raw,start = 0,dct=None): #basically we cant pass the dict as the default arguement because on every function calls it is gonna use the same dict which we dont want 
+    if not dct:
+        dct = dict()
+    
+    spc = raw.find(b' ',start)
+    nl = raw.find(b'\n',start)
+    
+    #now we have to identify the base case in here which means the base case will be the case when either no space is found which means that the commit file hit that last blank line without any space below it is the commit message or either the index of the space is greater than the index of the new line 
+    if (spc<0) or(nl<spc):
+        assert nl == start
+        dct[None] = raw[start+1:] #inserting the commit message  and storing it in the None key to avoid any name key conflicts  
+        return dct
+    
+    key = raw[start:spc]
+
+    end = start
+    #this thing we are doing in order to handle the pgp signature msg with leading spaces
+    while True:
+        end = raw.find(b'\n',end+1)
+        if raw[end+1] != ord(' ') :
+            break
+    
+    value = raw[spc+1:end].replace(b' \n',b'\n') #removing the leading spaces in the pgp lines 
+
+    #since there can be duplicate keys we have to handle this part as well 
+    if key in dict:
+        if type(dct[key]) == list:
+            dct[key].append(value)
+        else:
+            dct[key] = [dct[key],value] #otherwise we make it a list first 
+    else :
+        dct[key] = value
+    
+    #now the recursive call 
+    return kvlm_parser(raw,start = end+1,dct=dct)
+    
 
 
 

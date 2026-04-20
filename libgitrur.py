@@ -12,7 +12,6 @@ import os #this is for the interaction with the hardware via os (eg for creating
 import re #will be used for regular expressions
 import sys #for actually getting the command line arguements 
 import zlib #for the compression of the logs
-import git_repo
 import utility
 import objects
 
@@ -34,7 +33,6 @@ def setup_parser():
     hash_object_parser.add_argument("-w",dest = "write",action="store_true",help="Actually write the object into the database")
     hash_object_parser.add_argument("path",help="Read object from the <file>")
     return argparser
-
 
 #these are the main functions 
 def cmd_add(arg):
@@ -82,6 +80,7 @@ def cmd_hash_object(arg):
     with open(arg.path,"rb") as fd:
        sha =  object_hash(fd,arg.type.encode(),repo)
        print(sha)
+
 
 def cmd_init(arg):
     utility.create_repo(arg.path)
