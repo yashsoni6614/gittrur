@@ -166,5 +166,21 @@ def kvlm_parser(raw,start = 0,dct=None): #basically we cant pass the dict as the
     return kvlm_parser(raw,start = end+1,dct=dct)
     
 
+#now there is the ned to make the function which will basically write the given object just as the obj_read and the obj_write ones 
+def kvlm_serialize(kvlm_dict):
+    ret = b'' #we have to initialize the variable nameed ret we will be adding everything here 
 
+    for k in kvlm_dict.key():
+        if k == None : continue #we are not handling the case where there is this 
+        val = kvlm_dict[k]
+        if type(val) != list:
+            val = [val]
+        for v in val:
+            ret += k + b' ' + (v.replace(b'\n',b' \n')) + b'\n'
+        
+    ret += b'\n'+kvlm_dict[None]
+
+    return ret
+
+    
 

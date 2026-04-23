@@ -3,6 +3,7 @@ import os
 import utility
 import zlib
 import hashlib
+
 class GitObject(object) :
     def __init__(self,data = None):
         if not (data == None):
