@@ -40,9 +40,13 @@ class GitTree(GitObject):
 
 
 class GitCommit(GitObject):
-    fmt = b'Tree'
-    def serialize(): {}
-    def deserialize() :{}
+    fmt = b'commit'
+    def serialize(self): 
+        return utility.kvlm_serialize(self.kvlm)
+    def deserialize(self,data) :
+        self.kvlm = utility.kvlm_parser(data)
+    def init(self):
+        self.kvlm = dict()
 
 
 
