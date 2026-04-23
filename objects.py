@@ -6,7 +6,7 @@ import hashlib
 
 class GitObject(object) :
     def __init__(self,data = None):
-        if not (data == None):
+        if data is not None:
             self.deserialize(data)
         else:
             self.init()
@@ -17,7 +17,7 @@ class GitObject(object) :
     def deserialize(self,data):
         raise Exception("Unimplemnted")
     
-    def init():
+    def init(self):
         pass #just an empty object 
 
 
@@ -33,7 +33,7 @@ class GitBlob(GitObject):
         self.blobdata = data
 
 class GitTree(GitObject):
-    fmt = b'Tree'
+    fmt = b'tree'
     def serialize(): {}
     def deserialize() :{}
 
@@ -44,14 +44,14 @@ class GitCommit(GitObject):
     def serialize(self): 
         return utility.kvlm_serialize(self.kvlm)
     def deserialize(self,data) :
-        self.kvlm = utility.kvlm_parser(data)
+        self.kvlm = utility.kvlm_parse(data)
     def init(self):
         self.kvlm = dict()
 
 
 
 class GitTag(GitObject):
-    fmt = b'Tree'
+    fmt = b'tag'
     def serialize(): {}
     def deserialize() :{}
 
@@ -85,7 +85,7 @@ def object_read(repo,sha):
             case b'tag'    : c = GitTag
             case b'blob'   : c = GitBlob
             case _:
-                raise Exception (f"Unknown Type {fmt.decode("ascii")} for the object")
+                raise Exception (f"Unknown Type {fmt.decode('ascii')} for the object")
         
         #here the object is being created
         return c(raw[y+1:])

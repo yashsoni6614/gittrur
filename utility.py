@@ -116,7 +116,7 @@ def repo_find(path = ".",required = True):
     if(os.path.isdir(os.path.join(path,".git"))):
         return GitRepository(path)
     
-    parent = os.path.realpath(path.join(path,".."))
+    parent = os.path.realpath(os.path.join(path,".."))
 
     if(parent == path): #this is our edge case which means we have reached the root directory 
         if required:
@@ -129,8 +129,8 @@ def repo_find(path = ".",required = True):
 
 #here i will be making a commit parser whose job is to parse the keyvaluelist with message type files and parse them into the objects
 
-def kvlm_parser(raw,start = 0,dct=None): #basically we cant pass the dict as the default arguement because on every function calls it is gonna use the same dict which we dont want 
-    if not dct:
+def kvlm_parse(raw,start = 0,dct=None): #basically we cant pass the dict as the default arguement because on every function calls it is gonna use the same dict which we dont want 
+    if dct is None:
         dct = dict()
     
     spc = raw.find(b' ',start)
@@ -151,10 +151,10 @@ def kvlm_parser(raw,start = 0,dct=None): #basically we cant pass the dict as the
         if raw[end+1] != ord(' ') :
             break
     
-    value = raw[spc+1:end].replace(b' \n',b'\n') #removing the leading spaces in the pgp lines 
+    value = raw[spc+1:end].replace(b'\n ',b'\n') #removing the leading spaces in the pgp lines 
 
     #since there can be duplicate keys we have to handle this part as well 
-    if key in dict:
+    if key in dct:
         if type(dct[key]) == list:
             dct[key].append(value)
         else:
@@ -163,14 +163,14 @@ def kvlm_parser(raw,start = 0,dct=None): #basically we cant pass the dict as the
         dct[key] = value
     
     #now the recursive call 
-    return kvlm_parser(raw,start = end+1,dct=dct)
+    return kvlm_parse(raw,start = end+1,dct=dct)
     
 
 #now there is the ned to make the function which will basically write the given object just as the obj_read and the obj_write ones 
 def kvlm_serialize(kvlm_dict):
     ret = b'' #we have to initialize the variable nameed ret we will be adding everything here 
 
-    for k in kvlm_dict.key():
+    for k in kvlm_dict.keys():
         if k == None : continue #we are not handling the case where there is this 
         val = kvlm_dict[k]
         if type(val) != list:
